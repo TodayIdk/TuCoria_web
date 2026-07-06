@@ -33,13 +33,12 @@
   forms.login.addEventListener('submit', async (e) => {
     e.preventDefault();
     errs.login.textContent = '';
-    const fd = new FormData(forms.login);
+    const username = forms.login.querySelector('input[name=username]').value.trim();
+    const password = forms.login.querySelector('input[name=password]').value;
+    console.log('sending login:', { username, password });
     const btn = forms.login.querySelector('button[type=submit]');
     btn.disabled = true;
-    const r = await post('/api/auth/login', {
-      login: fd.get('login'),
-      password: fd.get('password')
-    });
+    const r = await post('/api/auth/login', { username, password });
     btn.disabled = false;
     if (!r.ok) return errs.login.textContent = r.data.error || 'Error';
     window.location.href = '/home';
@@ -48,14 +47,12 @@
   forms.register.addEventListener('submit', async (e) => {
     e.preventDefault();
     errs.register.textContent = '';
-    const fd = new FormData(forms.register);
+    const username = forms.register.querySelector('input[name=username]').value.trim();
+    const password = forms.register.querySelector('input[name=password]').value;
+    console.log('sending register:', { username, password });
     const btn = forms.register.querySelector('button[type=submit]');
     btn.disabled = true;
-    const r = await post('/api/auth/register', {
-      username: fd.get('username'),
-      email: fd.get('email'),
-      password: fd.get('password')
-    });
+    const r = await post('/api/auth/register', { username, password });
     btn.disabled = false;
     if (!r.ok) return errs.register.textContent = r.data.error || 'Error';
     window.location.href = '/home';
