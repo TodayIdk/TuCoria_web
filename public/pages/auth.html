@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TuCoria</title>
+<link rel="icon" href="/assets/logosite.png" />
+<link rel="stylesheet" href="/css/common.css" />
+<link rel="stylesheet" href="/css/auth.css" />
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="logo">
+        <img src="/assets/logo.png" alt="TuCoria" />
+        <span>TuCoria</span>
+      </div>
+      <h1>Welcome</h1>
+      <p>Sign in or create an account</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="login">Login</button>
+      <button class="tab" data-tab="register">Register</button>
+    </div>
+
+    <form id="loginForm" class="active" autocomplete="off">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" name="username" required minlength="3" maxlength="20" />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" name="password" required maxlength="100" />
+      </div>
+      <div class="error-msg" id="loginErr"></div>
+      <button type="submit" class="btn submit">Sign In</button>
+    </form>
+
+    <form id="registerForm" autocomplete="off">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" name="username" required minlength="3" maxlength="20" />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" name="password" required minlength="8" maxlength="100" />
+      </div>
+      <div class="error-msg" id="regErr"></div>
+      <button type="submit" class="btn submit">Create Account</button>
+    </form>
+  </div>
+</div>
+<script src="/js/auth.js"></script>
+</body>
+</html>
