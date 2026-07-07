@@ -20,26 +20,40 @@
   });
 
   async function post(url, data) {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(data)
-    });
-    const json = await res.json().catch(() => ({}));
-    return { ok: res.ok, status: res.status, data: json };
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data)
+      });
+      const json = await res.json().catch(() => ({}));
+      return { ok: res.ok, status: res.status, data: json };
+    } catch {
+      return { ok: false, status: 0, data: { error: 'Network error' } };
+    }
+  }
+
+  function readForm(form) {
+    const u = form.querySelector('input[name=username]');
+    const p = form.querySelector('input[name=password]');
+    return {
+      username: (u?.value || '').trim(),
+      password: (p?.value || '').trim()
+    };
   }
 
   forms.login.addEventListener('submit', async (e) => {
     e.preventDefault();
     errs.login.textContent = '';
-    const username = forms.login.querySelector('input[name=username]').value.trim();
-    const password = forms.login.querySelector('input[name=password]').value;
-    console.log('sending login:', { username, password });
+    const { username, password } = readForm(forms.login);
+    if (!username || !password) return errs.login.textContent = 'All fields required';
+
     const btn = forms.login.querySelector('button[type=submit]');
     btn.disabled = true;
     const r = await post('/api/auth/login', { username, password });
     btn.disabled = false;
+
     if (!r.ok) return errs.login.textContent = r.data.error || 'Error';
     window.location.href = '/home';
   });
@@ -47,13 +61,14 @@
   forms.register.addEventListener('submit', async (e) => {
     e.preventDefault();
     errs.register.textContent = '';
-    const username = forms.register.querySelector('input[name=username]').value.trim();
-    const password = forms.register.querySelector('input[name=password]').value;
-    console.log('sending register:', { username, password });
+    const { username, password } = readForm(forms.register);
+    if (!username || !password) return errs.register.textContent = 'All fields required';
+
     const btn = forms.register.querySelector('button[type=submit]');
     btn.disabled = true;
     const r = await post('/api/auth/register', { username, password });
     btn.disabled = false;
+
     if (!r.ok) return errs.register.textContent = r.data.error || 'Error';
     window.location.href = '/home';
   });
