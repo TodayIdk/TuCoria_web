@@ -28,7 +28,7 @@
       if (!res.ok) return showNotFound();
 
       const u = await res.json();
-      document.title = 'TuCoria — ' + u.username;
+      document.title = 'TuCoria'
       avatar.textContent = u.username.charAt(0).toUpperCase();
       usernameEl.textContent = u.username;
       uidEl.textContent = 'ID: ' + u.userId;
