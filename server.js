@@ -41,6 +41,9 @@ app.get('/home', (req, res) => {
 app.get('/auth', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/pages/auth.html'));
 });
+app.get('/profile/:id(\\d+)', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/pages/profile.html'));
+});
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 

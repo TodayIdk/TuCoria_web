@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TuCoria — Profile</title>
+<link rel="icon" href="/assets/logosite.png" />
+<link rel="stylesheet" href="/css/common.css" />
+<link rel="stylesheet" href="/css/profile.css" />
+</head>
+<body>
+<header class="topbar">
+  <a href="/home" class="logo">
+    <img src="/assets/logo.png" alt="TuCoria" />
+    <span>TuCoria</span>
+  </a>
+  <div class="topbar-actions">
+    <a href="/home" class="logout-btn">Home</a>
+  </div>
+</header>
+
+<main class="profile-wrap">
+  <div class="profile-card" id="profileCard">
+    <div class="avatar" id="avatar">?</div>
+    <div class="username" id="username">Loading...</div>
+    <div class="uid" id="uid">ID: —</div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">Registered</div>
+        <div class="stat-value" id="createdAt">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Last login</div>
+        <div class="stat-value" id="lastLogin">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="not-found" id="notFound" style="display:none">
+    <h1>404</h1>
+    <p>User not found</p>
+    <a href="/home" class="btn" style="max-width:200px;margin-top:16px">Back home</a>
+  </div>
+</main>
+
+<script src="/js/profile.js"></script>
+</body>
+</html>

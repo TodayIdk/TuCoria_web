@@ -9,6 +9,7 @@
       if (!res.ok) return window.location.href = '/auth';
       const u = await res.json();
       usernameEl.textContent = u.username;
+      usernameEl.href = '/profile/' + u.userId;
       uidEl.textContent = 'ID: ' + u.userId;
     } catch {
       window.location.href = '/auth';
