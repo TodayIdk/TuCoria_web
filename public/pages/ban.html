@@ -10,66 +10,37 @@
 </head>
 <body>
 <div class="ban-wrap">
-  <div class="ban-card">
-    <div class="ban-icon">✕</div>
-    <h1>Account Restricted</h1>
-    <p class="ban-lead">
-      Your account was flagged by our AI moderation system for violating our username guidelines.
-    </p>
+  <div class="ban-card" id="banCard">
+    <div class="ban-icon" id="banIcon">!</div>
+    <div class="ban-badge" id="banBadge">Notice</div>
+    <h1 id="banTitle">Account Notice</h1>
 
-    <div class="ban-user">
-      <div class="ban-user-row"><span>Username</span><b id="banUsername">—</b></div>
-      <div class="ban-user-row"><span>User ID</span><b id="banUserId">—</b></div>
-      <div class="ban-user-row"><span>Date</span><b id="banDate">—</b></div>
+    <div class="ban-message" id="banMessage">Loading...</div>
+
+    <div class="ban-info-grid">
+      <div class="ban-info-row"><span>Username</span><b id="banUsername">—</b></div>
+      <div class="ban-info-row"><span>User ID</span><b id="banUserId">—</b></div>
+      <div class="ban-info-row"><span>Issued</span><b id="banDate">—</b></div>
+      <div class="ban-info-row" id="expiresRow"><span>Expires in</span><b id="banExpires">—</b></div>
+      <div class="ban-info-row"><span>Severity</span><b id="banSeverity">—</b></div>
     </div>
 
-    <div class="ban-reason">
-      <div class="ban-reason-label">Reason</div>
+    <div class="ban-reason-box">
+      <div class="ban-reason-label">Detected reason</div>
       <div id="banReason">—</div>
     </div>
 
-    <div class="ban-appeal">
-      <h2>Appeal — Change your username</h2>
-      <p>Choose a new username that follows the <a href="/rules">rules</a>. Your account will be restored immediately.</p>
-    
-      <div class="field">
-        <label>New Username</label>
-        <input type="text" id="newUsername" maxlength="32" placeholder="e.g. NightWolf99" />
-      </div>
-      <div class="captcha" id="banCaptcha"></div>
-      <div class="error-msg" id="banErr"></div>
-      <button class="btn" id="submitBtn">Change Username</button>
-    
-      <div class="refuse-block">
-        <div class="refuse-label">Don't want to change?</div>
-        <button class="refuse-btn" id="refuseBtn">Refuse and delete my account</button>
-        <div class="refuse-warn">
-          ⚠️ Your account will be deleted in 24 hours. All accounts linked to yours (same registration time, similar username) will also be <b>banned</b> as suspected alt accounts.
-        </div>
-      </div>
-    </div>
-    
-    <div id="refuseModal" class="modal-backdrop" style="display:none">
-      <div class="modal">
-        <h3>Are you absolutely sure?</h3>
-        <p>This action cannot be undone. Your account will be scheduled for deletion in 24 hours, and all detected alt accounts will be banned immediately.</p>
-        <div class="modal-actions">
-          <button class="btn btn-outline" id="cancelRefuse">Cancel</button>
-          <button class="btn btn-danger" id="confirmRefuse">Yes, delete my account</button>
-        </div>
-      </div>
+    <div class="ban-actions">
+      <button class="btn" id="acknowledgeBtn">I Understand — Log Out</button>
     </div>
 
     <div class="ban-footer">
       With respect,<br/>
-      <b>TuCoria Team</b>
+      <b>TuCoria AI Moderation</b>
     </div>
-
-    <button class="ban-logout" id="logoutBtn">Logout</button>
   </div>
 </div>
 
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script src="/js/ban.js"></script>
 </body>
 </html>

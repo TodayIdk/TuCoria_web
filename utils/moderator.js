@@ -1,92 +1,154 @@
-const User = require('../models/User');
-const { checkUsername } = require('./nameCheck');
+require('dotenv').config({ path: __dirname + '/.env' });
+const mongoose = require('mongoose');
+const User = require('./models/User');
+const { checkUsername } = require('./utils/nameCheck');
+const { judgeUser, generateSafeUsername } = require('./utils/banJudge');
 
-const SCAN_INTERVAL_MS = 30 * 60 * 1000;
-const BATCH_SIZE = 20;
-const DELAY_BETWEEN_MS = 1500;
+const DELAY_MS = 1500;
 
-let running = false;
+async function applyJudgement(user, judgement, originalReason) {
+  const now = new Date();
+  const historyEntry = {
+    date: now,
+    reason: judgement.reason,
+    action: judgement.action,
+    username: user.username
+  };
 
-async function scanAllUsers() {
-  if (running) return;
-  running = true;
-  console.log('[MOD] Background scan started');
+  if (judgement.action === 'auto_renamed') {
+    let newName;
+    for (let i = 0; i < 10; i++) {
+      newName = generateSafeUsername();
+      const exists = await User.findOne({ usernameLower: newName.toLowerCase() }).lean();
+      if (!exists) break;
+    }
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          previousUsername: user.username,
+          username: newName,
+          usernameLower: newName.toLowerCase(),
+          banned: false,
+          banType: 'auto_renamed',
+          banReason: judgement.reason,
+          banMessage: judgement.message,
+          banSeverity: judgement.severity,
+          bannedAt: now,
+          banExpiresAt: null
+        },
+        $inc: { tokenVersion: 1 },
+        $push: { violationHistory: historyEntry }
+      }
+    );
+    return { type: 'auto_renamed', newName };
+  }
 
+  if (judgement.action === 'permanent') {
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          banned: true,
+          banType: 'permanent',
+          banReason: judgement.reason,
+          banMessage: judgement.message,
+          banSeverity: judgement.severity,
+          bannedAt: now,
+          banExpiresAt: null
+        },
+        $inc: { tokenVersion: 1 },
+        $push: { violationHistory: historyEntry }
+      }
+    );
+    return { type: 'permanent' };
+  }
+
+  const durationMs = (judgement.durationMinutes || (judgement.action === 'warn' ? 1 : 60)) * 60 * 1000;
+  const expiresAt = new Date(now.getTime() + durationMs);
+  await User.updateOne(
+    { _id: user._id },
+    {
+      $set: {
+        banned: true,
+        banType: judgement.action,
+        banReason: judgement.reason,
+        banMessage: judgement.message,
+        banSeverity: judgement.severity,
+        bannedAt: now,
+        banExpiresAt: expiresAt
+      },
+      $inc: { tokenVersion: 1 },
+      $push: { violationHistory: historyEntry }
+    }
+  );
+  return { type: judgement.action, expiresAt };
+}
+
+async function run() {
   try {
-    const users = await User.find({ banned: false }).select('_id username usernameLower').lean();
-    console.log(`[MOD] Scanning ${users.length} users`);
+    const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/tucoria';
+    await mongoose.connect(uri);
+    console.log('[MOD] Connected\n');
+
+    const users = await User.find({
+      $or: [
+        { banned: false },
+        { banned: true, banType: 'warn' },
+        { banned: true, banType: 'temp' }
+      ]
+    }).lean();
+
+    console.log(`[MOD] Scanning ${users.length} users...\n`);
+    let banned = 0, clean = 0, renamed = 0, warned = 0, perma = 0;
 
     for (let i = 0; i < users.length; i++) {
       const u = users[i];
+      const num = `[${i + 1}/${users.length}]`;
+
       try {
-        const result = await checkUsername(u.username, u.userId);
-        if (!result.ok) {
-          await User.updateOne(
-            { _id: u._id },
-            {
-              $set: {
-                banned: true,
-                banReason: '[AI 24/7] ' + (result.reason || 'Username violates guidelines'),
-                bannedAt: new Date()
-              },
-              $inc: { tokenVersion: 1 }
-            }
-          );
-          console.log(`[MOD] BANNED: ${u.username} — ${result.reason}`);
+        const check = await checkUsername(u.username, u.userId);
+        if (check.ok) {
+          console.log(`${num} ✅ OK      #${u.userId}  ${u.username}`);
+          clean++;
+        } else {
+          const judgement = await judgeUser(u.username, check.reason, u.violationHistory || []);
+          const result = await applyJudgement(u, judgement, check.reason);
+          if (result.type === 'auto_renamed') {
+            console.log(`${num} ✏️  RENAMED #${u.userId}  ${u.username} → ${result.newName}`);
+            renamed++;
+          } else if (result.type === 'permanent') {
+            console.log(`${num} 🚫 PERMA   #${u.userId}  ${u.username}`);
+            perma++;
+          } else if (result.type === 'warn') {
+            console.log(`${num} ⚠️  WARN    #${u.userId}  ${u.username} (1 min)`);
+            warned++;
+          } else {
+            console.log(`${num} ⏱️  TEMP    #${u.userId}  ${u.username} (${judgement.durationMinutes} min)`);
+            banned++;
+          }
         }
       } catch (e) {
-        console.error('[MOD] scan error for', u.username, e.message);
+        console.log(`${num} ⚠️  ERROR   #${u.userId}  ${u.username}  →  ${e.message}`);
       }
 
-      if ((i + 1) % BATCH_SIZE === 0) {
-        await new Promise(r => setTimeout(r, DELAY_BETWEEN_MS * 5));
-      } else {
-        await new Promise(r => setTimeout(r, DELAY_BETWEEN_MS));
-      }
+      if (i < users.length - 1) await new Promise(r => setTimeout(r, DELAY_MS));
     }
 
-    console.log('[MOD] Scan complete');
+    console.log('\n────────────────────────────────');
+    console.log(`✅ Clean:      ${clean}`);
+    console.log(`⚠️  Warned:    ${warned}`);
+    console.log(`✏️  Renamed:   ${renamed}`);
+    console.log(`⏱️  Temp bans: ${banned}`);
+    console.log(`🚫 Perma:      ${perma}`);
+    console.log('────────────────────────────────\n');
+
+    await mongoose.disconnect();
+    console.log('[MOD] Done ✅');
   } catch (err) {
-    console.error('[MOD] Scan failed:', err.message);
-  } finally {
-    running = false;
+    console.error('[MOD] Error:', err);
+    process.exit(1);
   }
 }
 
-function startModerator() {
-  console.log('[MOD] Background moderator enabled');
-  setTimeout(scanAllUsers, 60000);
-  setInterval(scanAllUsers, SCAN_INTERVAL_MS);
-}
-
-async function findAltAccounts(userId) {
-  try {
-    const user = await User.findOne({ userId }).lean();
-    if (!user) return [];
-
-    const registeredNear = await User.find({
-      _id: { $ne: user._id },
-      createdAt: {
-        $gte: new Date(user.createdAt.getTime() - 24 * 60 * 60 * 1000),
-        $lte: new Date(user.createdAt.getTime() + 24 * 60 * 60 * 1000)
-      }
-    }).select('userId username usernameLower createdAt banned').lean();
-
-    const lower = user.usernameLower;
-    const similar = await User.find({
-      _id: { $ne: user._id },
-      $or: [
-        { usernameLower: new RegExp(lower.substring(0, Math.max(3, lower.length - 2))) },
-        { usernameLower: { $regex: lower.substring(0, 4) } }
-      ]
-    }).select('userId username usernameLower createdAt banned').lean();
-
-    const map = new Map();
-    for (const x of [...registeredNear, ...similar]) {
-      map.set(x.userId, x);
-    }
-    return [...map.values()];
-  } catch { return []; }
-}
-
-module.exports = { startModerator, scanAllUsers, findAltAccounts };
+run();

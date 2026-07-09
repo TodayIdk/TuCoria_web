@@ -8,11 +8,25 @@ const userSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   lastLogin: { type: Date, default: null },
   tokenVersion: { type: Number, default: 0 },
+
   banned: { type: Boolean, default: false },
+  banType: { type: String, enum: ['warn', 'temp', 'permanent', 'auto_renamed', ''], default: '' },
   banReason: { type: String, default: '' },
+  banMessage: { type: String, default: '' },
+  banSeverity: { type: Number, default: 0 },
   bannedAt: { type: Date, default: null },
+  banExpiresAt: { type: Date, default: null },
+  previousUsername: { type: String, default: '' },
+
   pendingDeletion: { type: Boolean, default: false },
-  deletionScheduledAt: { type: Date, default: null }
+  deletionScheduledAt: { type: Date, default: null },
+
+  violationHistory: [{
+    date: { type: Date, default: Date.now },
+    reason: String,
+    action: String,
+    username: String
+  }]
 }, { versionKey: false });
 
 userSchema.pre('validate', function(next) {

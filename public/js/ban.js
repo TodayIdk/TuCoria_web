@@ -1,123 +1,112 @@
 (() => {
   const el = {
+    card: document.getElementById('banCard'),
+    icon: document.getElementById('banIcon'),
+    badge: document.getElementById('banBadge'),
+    title: document.getElementById('banTitle'),
+    message: document.getElementById('banMessage'),
     username: document.getElementById('banUsername'),
     userId: document.getElementById('banUserId'),
     date: document.getElementById('banDate'),
+    expiresRow: document.getElementById('expiresRow'),
+    expires: document.getElementById('banExpires'),
+    severity: document.getElementById('banSeverity'),
     reason: document.getElementById('banReason'),
-    newUsername: document.getElementById('newUsername'),
-    err: document.getElementById('banErr'),
-    submit: document.getElementById('submitBtn'),
-    logout: document.getElementById('logoutBtn'),
-    captcha: document.getElementById('banCaptcha'),
-    refuseBtn: document.getElementById('refuseBtn'),
-    modal: document.getElementById('refuseModal'),
-    cancelRefuse: document.getElementById('cancelRefuse'),
-    confirmRefuse: document.getElementById('confirmRefuse')
+    acknowledge: document.getElementById('acknowledgeBtn')
   };
 
-  let siteKey = null;
-  let widgetId = null;
+  let banData = null;
+  let countdownTimer = null;
+
+  const TYPE_CONFIG = {
+    warn: { icon: '!', badge: 'Warning', title: 'Friendly Warning' },
+    temp: { icon: '⏱', badge: 'Temporary Ban', title: 'Account Restricted' },
+    permanent: { icon: '✕', badge: 'Permanent Ban', title: 'Account Disabled' },
+    auto_renamed: { icon: '✓', badge: 'Auto-Renamed', title: 'Username Changed' }
+  };
 
   function fmtDate(d) {
     if (!d) return '—';
-    return new Date(d).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+    return new Date(d).toLocaleString('en-US', {
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
   }
 
-  async function loadInfo() {
+  function fmtRemaining(ms) {
+    if (ms <= 0) return '0s';
+    const s = Math.floor(ms / 1000);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    if (h > 0) return `${h}h ${m}m ${sec}s`;
+    if (m > 0) return `${m}m ${sec}s`;
+    return `${sec}s`;
+  }
+
+  function updateCountdown() {
+    if (!banData || !banData.banExpiresAt) return;
+    const remaining = new Date(banData.banExpiresAt).getTime() - Date.now();
+    if (remaining <= 0) {
+      el.expires.textContent = 'Unlocked — refreshing...';
+      clearInterval(countdownTimer);
+      setTimeout(() => window.location.href = '/home', 1500);
+      return;
+    }
+    el.expires.textContent = fmtRemaining(remaining);
+    el.expires.classList.add('countdown');
+  }
+
+  async function load() {
     try {
       const r = await fetch('/api/auth/ban-info', { credentials: 'include' });
-      if (!r.ok) return window.location.href = '/auth';
+      if (r.status === 401) return window.location.href = '/auth';
       const d = await r.json();
+
+      if (d.expired) return window.location.href = '/home';
+      if (!r.ok) return window.location.href = '/auth';
+
+      banData = d;
+      const cfg = TYPE_CONFIG[d.banType] || TYPE_CONFIG.temp;
+
+      el.card.classList.add(d.banType);
+      el.icon.textContent = cfg.icon;
+      el.badge.textContent = cfg.badge;
+      el.title.textContent = cfg.title;
+      el.message.textContent = d.banMessage || 'Your account has been reviewed by our AI moderator.';
       el.username.textContent = d.username;
       el.userId.textContent = '#' + d.userId;
       el.date.textContent = fmtDate(d.bannedAt);
-      el.reason.textContent = d.banReason || 'Username violates community guidelines';
-    } catch { window.location.href = '/auth'; }
-  }
+      el.reason.textContent = d.banReason || '—';
+      el.severity.textContent = (d.severity || '—') + ' / 10';
 
-  async function loadConfig() {
-    try {
-      const r = await fetch('/api/auth/config');
-      const d = await r.json();
-      siteKey = d.turnstileSiteKey;
-      if (siteKey) waitTurnstile();
-    } catch {}
-  }
-
-  function waitTurnstile() {
-    if (window.turnstile) return renderCaptcha();
-    const t = setInterval(() => { if (window.turnstile) { clearInterval(t); renderCaptcha(); } }, 100);
-  }
-
-  function renderCaptcha() {
-    widgetId = window.turnstile.render(el.captcha, { sitekey: siteKey, theme: 'light', size: 'flexible' });
-  }
-
-  function getToken() {
-    if (!siteKey || widgetId === null) return '';
-    return window.turnstile.getResponse(widgetId) || '';
-  }
-
-  el.submit.addEventListener('click', async () => {
-    el.err.textContent = '';
-    const newUsername = el.newUsername.value.trim();
-    if (!newUsername) return el.err.textContent = 'Enter new username';
-    if (newUsername.length < 4) return el.err.textContent = 'Minimum 4 characters';
-
-    const turnstileToken = getToken();
-    if (siteKey && !turnstileToken) return el.err.textContent = 'Please complete the captcha';
-
-    el.submit.disabled = true;
-    try {
-      const r = await fetch('/api/auth/change-username', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ newUsername, turnstileToken })
-      });
-      const d = await r.json();
-      if (!r.ok) {
-        el.err.textContent = d.error || 'Error';
-        if (siteKey && widgetId !== null) window.turnstile.reset(widgetId);
-        return;
-      }
-      window.location.href = '/home';
-    } catch { el.err.textContent = 'Network error'; }
-    finally { el.submit.disabled = false; }
-  });
-
-  el.refuseBtn.addEventListener('click', () => {
-    el.modal.style.display = 'flex';
-  });
-  el.cancelRefuse.addEventListener('click', () => {
-    el.modal.style.display = 'none';
-  });
-  el.confirmRefuse.addEventListener('click', async () => {
-    el.confirmRefuse.disabled = true;
-    try {
-      const r = await fetch('/api/auth/refuse-rename', {
-        method: 'POST',
-        credentials: 'include'
-      });
-      const d = await r.json();
-      if (r.ok) {
-        alert(`Account scheduled for deletion in 24 hours.\n${d.altsBanned} alt account(s) were banned.`);
-        window.location.href = '/auth';
+      if (d.banExpiresAt) {
+        el.expiresRow.style.display = 'flex';
+        updateCountdown();
+        countdownTimer = setInterval(updateCountdown, 1000);
       } else {
-        alert(d.error || 'Error');
-        el.confirmRefuse.disabled = false;
+        el.expiresRow.style.display = 'none';
+      }
+
+      if (d.banType === 'permanent') {
+        el.acknowledge.textContent = 'Log Out';
+      } else if (d.banType === 'warn') {
+        el.acknowledge.textContent = 'I Understand — Log Out';
+      } else {
+        el.acknowledge.textContent = 'Log Out and Wait';
       }
     } catch {
-      alert('Network error');
-      el.confirmRefuse.disabled = false;
+      window.location.href = '/auth';
     }
-  });
+  }
 
-  el.logout.addEventListener('click', async () => {
-    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+  el.acknowledge.addEventListener('click', async () => {
+    el.acknowledge.disabled = true;
+    try {
+      await fetch('/api/auth/acknowledge-ban', { method: 'POST', credentials: 'include' });
+    } catch {}
     window.location.href = '/auth';
   });
 
-  loadInfo();
-  loadConfig();
+  load();
 })();

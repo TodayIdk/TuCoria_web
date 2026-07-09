@@ -128,4 +128,22 @@
   text-decoration: underline;
 }
 
+.rename-notice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: #ecfdf5;
+  border: 1px solid #10b981;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+.rename-notice-icon { font-size: 18px; }
+.rename-notice-text {
+  font-size: 12.5px;
+  color: #065f46;
+  line-height: 1.5;
+}
+.rename-notice-text b { display: block; margin-bottom: 4px; }
+
 .submit { margin-top: 8px; }

@@ -18,53 +18,80 @@
 .ban-icon {
   width: 64px;
   height: 64px;
-  margin: 0 auto 18px;
+  margin: 0 auto 14px;
   border-radius: 50%;
   background: #000;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
+  font-size: 32px;
+  font-weight: 700;
+  transition: background .2s ease;
+}
+.ban-card.warn .ban-icon { background: #f59e0b; }
+.ban-card.temp .ban-icon { background: #000; }
+.ban-card.permanent .ban-icon { background: #d92d20; }
+.ban-card.auto_renamed .ban-icon { background: #10b981; }
+
+.ban-badge {
+  display: inline-block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 4px 12px;
+  border-radius: 100px;
+  margin-bottom: 14px;
   font-weight: 700;
 }
+.ban-card.warn .ban-badge { color: #f59e0b; border-color: #f59e0b; }
+.ban-card.permanent .ban-badge { color: #d92d20; border-color: #d92d20; }
+.ban-card.auto_renamed .ban-badge { color: #10b981; border-color: #10b981; }
 
 .ban-card h1 {
   font-size: 26px;
   font-weight: 700;
   letter-spacing: -0.03em;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 
-.ban-lead {
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.5;
-  margin-bottom: 24px;
-}
-
-.ban-user {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  text-align: left;
-}
-.ban-user-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 0;
-  font-size: 13px;
-}
-.ban-user-row span { color: var(--muted); }
-.ban-user-row b { font-weight: 600; }
-
-.ban-reason {
+.ban-message {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: #222;
   background: #fafafa;
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 14px;
-  margin-bottom: 24px;
+  padding: 16px 18px;
+  margin-bottom: 22px;
+  text-align: left;
+}
+
+.ban-info-grid {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px 16px;
+  margin-bottom: 16px;
+}
+.ban-info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+.ban-info-row:last-child { border-bottom: none; }
+.ban-info-row span { color: var(--muted); }
+.ban-info-row b { font-weight: 600; }
+
+.ban-reason-box {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 22px;
   text-align: left;
 }
 .ban-reason-label {
@@ -72,135 +99,27 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--muted);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   font-weight: 600;
 }
-#banReason {
-  font-size: 14px;
-  font-weight: 500;
-}
+#banReason { font-size: 13px; font-weight: 500; }
 
-.ban-appeal {
-  border-top: 1px solid var(--border);
-  padding-top: 24px;
-  margin-top: 8px;
-  text-align: left;
-}
-.ban-appeal h2 {
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  margin-bottom: 6px;
-}
-.ban-appeal p {
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 16px;
-}
-.ban-appeal a {
-  color: #000;
-  text-decoration: underline;
+.ban-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .ban-footer {
-  margin-top: 24px;
-  padding-top: 20px;
+  margin-top: 22px;
+  padding-top: 18px;
   border-top: 1px solid var(--border);
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--muted);
   line-height: 1.6;
 }
 .ban-footer b { color: #000; }
 
-.ban-logout {
-  margin-top: 18px;
-  color: var(--muted);
-  font-size: 12px;
-  text-decoration: underline;
+.countdown {
+  font-variant-numeric: tabular-nums;
 }
-.ban-logout:hover { color: #000; }
-
-.captcha {
-  display: flex;
-  justify-content: center;
-  margin: 12px 0 4px;
-}
-.captcha:empty { display: none; }
-
-.refuse-block {
-  margin-top: 22px;
-  padding-top: 18px;
-  border-top: 1px dashed var(--border);
-}
-.refuse-label {
-  font-size: 12px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-.refuse-btn {
-  width: 100%;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: #fff;
-  color: #000;
-  font-weight: 500;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all .15s ease;
-}
-.refuse-btn:hover { background: #fafafa; border-color: #000; }
-.refuse-warn {
-  margin-top: 10px;
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.5;
-  background: #fafafa;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-}
-
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-}
-.modal {
-  background: #fff;
-  border-radius: 16px;
-  padding: 28px;
-  max-width: 420px;
-  width: 100%;
-  border: 1px solid var(--border);
-}
-.modal h3 {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  margin-bottom: 10px;
-}
-.modal p {
-  font-size: 14px;
-  color: #333;
-  line-height: 1.5;
-  margin-bottom: 20px;
-}
-.modal-actions {
-  display: flex;
-  gap: 10px;
-}
-.modal-actions .btn { margin: 0; }
-.btn-danger {
-  background: #d92d20 !important;
-  color: #fff !important;
-}
-.btn-danger:hover { opacity: 0.9; }

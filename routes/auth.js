@@ -157,19 +157,35 @@ router.get('/ban-info', async (req, res) => {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(payload.uid).lean();
     if (!user) return res.status(404).json({ error: 'Not found' });
+
+    const now = Date.now();
+    if (user.banned && user.banExpiresAt && new Date(user.banExpiresAt).getTime() <= now) {
+      await User.updateOne(
+        { _id: user._id },
+        { $set: { banned: false, banType: '', banReason: '', banMessage: '', banExpiresAt: null } }
+      );
+      return res.json({ expired: true });
+    }
+
     if (!user.banned) return res.status(400).json({ error: 'Not banned' });
+
     res.json({
       userId: user.userId,
       username: user.username,
+      banType: user.banType,
       banReason: user.banReason,
-      bannedAt: user.bannedAt
+      banMessage: user.banMessage,
+      bannedAt: user.bannedAt,
+      banExpiresAt: user.banExpiresAt,
+      severity: user.banSeverity,
+      canAppeal: user.banType !== 'permanent'
     });
   } catch {
     res.status(401).json({ error: 'Unauthorized' });
   }
 });
 
-router.post('/change-username', authLimiter, async (req, res) => {
+router.post('/acknowledge-ban', async (req, res) => {
   try {
     const token = req.cookies.token;
     if (!token) return res.status(401).json({ error: 'Unauthorized' });
@@ -177,91 +193,40 @@ router.post('/change-username', authLimiter, async (req, res) => {
     const user = await User.findById(payload.uid);
     if (!user) return res.status(404).json({ error: 'Not found' });
 
-    let { newUsername, turnstileToken } = req.body || {};
-    if (typeof newUsername !== 'string')
-      return res.status(400).json({ error: 'Invalid input' });
-
-    newUsername = newUsername.trim();
-
-    if (newUsername.length < 4 || newUsername.length > 32)
-      return res.status(400).json({ error: 'Username must be 4-32 characters' });
-    if (!USERNAME_REGEX.test(newUsername))
-      return res.status(400).json({ error: 'Username: only Latin letters, digits, _ - .' });
-
-    const okCaptcha = await verifyTurnstile(turnstileToken, getIp(req));
-    if (!okCaptcha) return res.status(400).json({ error: 'Captcha verification failed' });
-
-    const newLower = newUsername.toLowerCase();
-    if (newLower !== user.usernameLower) {
-      const exists = await User.findOne({ usernameLower: newLower }).lean();
-      if (exists) return res.status(409).json({ error: 'Username already taken' });
+    const now = Date.now();
+    if (user.banned && user.banExpiresAt && new Date(user.banExpiresAt).getTime() <= now) {
+      user.banned = false;
+      user.banType = '';
+      user.banReason = '';
+      user.banMessage = '';
+      user.banExpiresAt = null;
+      await user.save();
+      return res.json({ ok: true, unbanned: true });
     }
 
-    const nameCheck = await checkUsername(newUsername);
-    if (!nameCheck.ok) return res.status(400).json({ error: nameCheck.reason });
-
-    user.username = newUsername;
-    user.usernameLower = newLower;
-    user.banned = false;
-    user.banReason = '';
-    user.bannedAt = null;
-    user.tokenVersion = (user.tokenVersion || 0) + 1;
-    await user.save();
-
-    const newToken = signToken(user);
-    setAuthCookie(res, newToken);
-
-    res.json({ ok: true, user: { userId: user.userId, username: user.username } });
-  } catch (err) {
-    console.error('[CHANGE-USERNAME]', err);
+    res.clearCookie('token', { path: '/' });
+    res.json({ ok: true, loggedOut: true });
+  } catch {
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-router.post('/refuse-rename', async (req, res) => {
+
+router.get('/rename-check/:username', async (req, res) => {
   try {
-    const token = req.cookies.token;
-    if (!token) return res.status(401).json({ error: 'Unauthorized' });
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(payload.uid);
-    if (!user) return res.status(404).json({ error: 'Not found' });
-    if (!user.banned) return res.status(400).json({ error: 'Not banned' });
-
-    const { detectAlts } = require('../utils/altDetector');
-    const { alts } = await detectAlts(user.toObject());
-
-    let bannedAlts = 0;
-    for (const alt of alts) {
-      if (alt.banned) continue;
-      await User.updateOne(
-        { userId: alt.userId },
-        {
-          $set: {
-            banned: true,
-            banReason: `[ALT-BAN] AI-detected alt of banned #${user.userId} (${user.username}). Confidence: ${(alt.aiConfidence || 0).toFixed(2)}. ${alt.aiReason || alt.reasons.join('; ')}`,
-            bannedAt: new Date()
-          },
-          $inc: { tokenVersion: 1 }
-        }
-      );
-      bannedAlts++;
+    const q = req.params.username.toLowerCase();
+    const user = await User.findOne({
+      $or: [
+        { usernameLower: q },
+        { previousUsername: { $regex: new RegExp('^' + q + '$', 'i') } }
+      ]
+    }).lean();
+    if (!user || user.banType !== 'auto_renamed') return res.json({ renamed: false });
+    if (user.previousUsername && user.previousUsername.toLowerCase() === q) {
+      return res.json({ renamed: true, oldName: user.previousUsername, newName: user.username });
     }
-
-    user.pendingDeletion = true;
-    user.deletionScheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    user.tokenVersion = (user.tokenVersion || 0) + 1;
-    await user.save();
-
-    res.clearCookie('token', { path: '/' });
-    res.json({
-      ok: true,
-      altsBanned: bannedAlts,
-      message: 'Account scheduled for deletion. All AI-detected alt accounts have been banned.'
-    });
-  } catch (err) {
-    console.error('[REFUSE-RENAME]', err);
-    res.status(500).json({ error: 'Server error' });
-  }
+    res.json({ renamed: false });
+  } catch { res.json({ renamed: false }); }
 });
 
 module.exports = router;

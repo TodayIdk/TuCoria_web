@@ -42,9 +42,18 @@ async function getUserFromCookie(req) {
   try {
     if (!req.cookies.token) return null;
     const payload = jwt.verify(req.cookies.token, process.env.JWT_SECRET);
-    const user = await User.findById(payload.uid).lean();
+    const user = await User.findById(payload.uid);
     if (!user || user.tokenVersion !== payload.tv) return null;
-    return user;
+
+    if (user.banned && user.banExpiresAt && new Date(user.banExpiresAt).getTime() <= Date.now()) {
+      user.banned = false;
+      user.banType = '';
+      user.banReason = '';
+      user.banMessage = '';
+      user.banExpiresAt = null;
+      await user.save();
+    }
+    return user.toObject();
   } catch { return null; }
 }
 

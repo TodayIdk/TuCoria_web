@@ -110,6 +110,20 @@
     }
 
     if (!r.ok) {
+      if (key === 'login' && r.status === 401 && username) {
+        try {
+          const check = await fetch('/api/auth/rename-check/' + encodeURIComponent(username));
+          const cd = await check.json();
+          if (cd.renamed) {
+            const notice = document.getElementById('renameNotice');
+            const text = document.getElementById('renameOldNew');
+            if (notice && text) {
+              text.textContent = ` "${cd.oldName}" is now "${cd.newName}". `;
+              notice.style.display = 'flex';
+            }
+          }
+        } catch {}
+      }
       errs[key].textContent = r.data.error || 'Error';
       resetCaptcha(key);
       return;
