@@ -184,6 +184,6 @@ async function detectAlts(userIdOrUser) {
 
   const alts = await aiConfirmAlts(target, candidates);
   return { target, alts, candidatesChecked: candidates.length };
-}
+} //
 
 module.exports = { detectAlts, findCandidates, aiConfirmAlts, similarity };
