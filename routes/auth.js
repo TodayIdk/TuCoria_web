@@ -5,7 +5,7 @@ const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const { getNextId } = require('../utils/counter');
 const { verifyTurnstile } = require('../utils/turnstile');
-const { checkUsername } = require('../utils/nameCheck');
+const { checkUsername, aiCheckExisting } = require('../utils/nameCheck');
 
 const router = express.Router();
 
@@ -23,7 +23,7 @@ function signToken(user) {
   return jwt.sign(
     { uid: user._id.toString(), tv: user.tokenVersion },
     process.env.JWT_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: '30d' }
   );
 }
 
@@ -32,7 +32,7 @@ function setAuthCookie(res, token) {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    maxAge: 30 * 24 * 60 * 60 * 1000,
     path: '/'
   });
 }
@@ -54,8 +54,7 @@ router.post('/register', authLimiter, async (req, res) => {
     if (typeof username !== 'string' || typeof password !== 'string')
       return res.status(400).json({ error: 'All fields required' });
 
-    username = username.normalize('NFC').trim();
-    password = password;
+    username = username.trim();
 
     if (!username || !password)
       return res.status(400).json({ error: 'All fields required' });
@@ -65,9 +64,6 @@ router.post('/register', authLimiter, async (req, res) => {
 
     if (!USERNAME_REGEX.test(username))
       return res.status(400).json({ error: 'Username: only Latin letters, digits, _ - .' });
-    
-    if (/\s/.test(username))
-      return res.status(400).json({ error: 'No spaces allowed in username' });
 
     if (password.length < 8 || password.length > 100)
       return res.status(400).json({ error: 'Password must be 8-100 chars' });
@@ -111,6 +107,8 @@ router.post('/login', authLimiter, async (req, res) => {
     if (typeof username !== 'string' || typeof password !== 'string')
       return res.status(400).json({ error: 'All fields required' });
 
+    username = username.trim();
+
     if (!username || !password)
       return res.status(400).json({ error: 'All fields required' });
 
@@ -122,6 +120,17 @@ router.post('/login', authLimiter, async (req, res) => {
 
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+
+    if (user.banned) {
+      const token = signToken(user);
+      setAuthCookie(res, token);
+      return res.status(403).json({
+        error: 'banned',
+        banReason: user.banReason,
+        username: user.username,
+        userId: user.userId
+      });
+    }
 
     user.lastLogin = new Date();
     await user.save();
@@ -139,6 +148,74 @@ router.post('/login', authLimiter, async (req, res) => {
 router.post('/logout', (req, res) => {
   res.clearCookie('token', { path: '/' });
   res.json({ ok: true });
+});
+
+router.get('/ban-info', async (req, res) => {
+  try {
+    const token = req.cookies.token;
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(payload.uid).lean();
+    if (!user) return res.status(404).json({ error: 'Not found' });
+    if (!user.banned) return res.status(400).json({ error: 'Not banned' });
+    res.json({
+      userId: user.userId,
+      username: user.username,
+      banReason: user.banReason,
+      bannedAt: user.bannedAt
+    });
+  } catch {
+    res.status(401).json({ error: 'Unauthorized' });
+  }
+});
+
+router.post('/change-username', authLimiter, async (req, res) => {
+  try {
+    const token = req.cookies.token;
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(payload.uid);
+    if (!user) return res.status(404).json({ error: 'Not found' });
+
+    let { newUsername, turnstileToken } = req.body || {};
+    if (typeof newUsername !== 'string')
+      return res.status(400).json({ error: 'Invalid input' });
+
+    newUsername = newUsername.trim();
+
+    if (newUsername.length < 4 || newUsername.length > 32)
+      return res.status(400).json({ error: 'Username must be 4-32 characters' });
+    if (!USERNAME_REGEX.test(newUsername))
+      return res.status(400).json({ error: 'Username: only Latin letters, digits, _ - .' });
+
+    const okCaptcha = await verifyTurnstile(turnstileToken, getIp(req));
+    if (!okCaptcha) return res.status(400).json({ error: 'Captcha verification failed' });
+
+    const newLower = newUsername.toLowerCase();
+    if (newLower !== user.usernameLower) {
+      const exists = await User.findOne({ usernameLower: newLower }).lean();
+      if (exists) return res.status(409).json({ error: 'Username already taken' });
+    }
+
+    const nameCheck = await checkUsername(newUsername);
+    if (!nameCheck.ok) return res.status(400).json({ error: nameCheck.reason });
+
+    user.username = newUsername;
+    user.usernameLower = newLower;
+    user.banned = false;
+    user.banReason = '';
+    user.bannedAt = null;
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    await user.save();
+
+    const newToken = signToken(user);
+    setAuthCookie(res, newToken);
+
+    res.json({ ok: true, user: { userId: user.userId, username: user.username } });
+  } catch (err) {
+    console.error('[CHANGE-USERNAME]', err);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 module.exports = router;

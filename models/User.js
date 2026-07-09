@@ -20,7 +20,10 @@ const userSchema = new mongoose.Schema({
   passwordHash: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
   lastLogin: { type: Date, default: null },
-  tokenVersion: { type: Number, default: 0 }
+  tokenVersion: { type: Number, default: 0 },
+  banned: { type: Boolean, default: false },
+  banReason: { type: String, default: '' },
+  bannedAt: { type: Date, default: null }
 }, { versionKey: false });
 
 userSchema.pre('validate', function(next) {

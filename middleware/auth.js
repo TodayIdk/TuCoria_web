@@ -14,9 +14,18 @@ async function authRequired(req, res, next) {
       return res.status(401).json({ error: 'Invalid session' });
     }
 
+    if (user.banned) {
+      return res.status(403).json({
+        error: 'banned',
+        banReason: user.banReason,
+        username: user.username,
+        userId: user.userId
+      });
+    }
+
     req.user = user;
     next();
-  } catch (err) {
+  } catch {
     res.clearCookie('token');
     res.status(401).json({ error: 'Unauthorized' });
   }

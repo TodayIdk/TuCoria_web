@@ -6,6 +6,10 @@
   async function load() {
     try {
       const res = await fetch('/api/user/me', { credentials: 'include' });
+      if (res.status === 403) {
+        const d = await res.json().catch(() => ({}));
+        if (d.error === 'banned') return window.location.href = '/ban';
+      }
       if (!res.ok) return window.location.href = '/auth';
       const u = await res.json();
       usernameEl.textContent = u.username;

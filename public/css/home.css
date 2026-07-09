@@ -50,3 +50,8 @@
   transition: background .15s ease;
 }
 .logout-btn:hover { background: #f4f4f4; }
+
+.topbar-actions {
+  display: flex;
+  gap: 10px;
+}

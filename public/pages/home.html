@@ -9,22 +9,24 @@
 <link rel="stylesheet" href="/css/home.css" />
 </head>
 <body>
-<header class="topbar">
-  <div class="logo">
-    <img src="/assets/logo.png" alt="TuCoria" />
-    <span>TuCoria</span>
-  </div>
-  <button id="logoutBtn" class="logout-btn">Logout</button>
-</header>
-
-<main class="home-wrap">
-  <div class="home-card">
-    <h1>Welcome back</h1>
-    <a id="username" class="username" href="#">—</a>
-    <div class="uid" id="uid">ID: —</div>
-  </div>
-</main>
-
+    <header class="topbar">
+      <div class="logo">
+        <img src="/assets/logo.png" alt="TuCoria" />
+        <span>TuCoria</span>
+      </div>
+      <div class="topbar-actions">
+        <a href="/rules" class="logout-btn">Rules</a>
+        <button id="logoutBtn" class="logout-btn">Logout</button>
+      </div>
+    </header>
+    
+    <main class="home-wrap">
+      <div class="home-card">
+        <h1>Welcome back</h1>
+        <a class="username" id="username" href="#">—</a>
+        <div class="uid" id="uid">ID: —</div>
+      </div>
+    </main>
 <script src="/js/home.js"></script>
 </body>
 </html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TuCoria</title>
+<link rel="icon" href="/assets/logosite.png" />
+<link rel="stylesheet" href="/css/common.css" />
+<link rel="stylesheet" href="/css/ban.css" />
+</head>
+<body>
+<div class="ban-wrap">
+  <div class="ban-card">
+    <div class="ban-icon">✕</div>
+    <h1>Account Restricted</h1>
+    <p class="ban-lead">
+      Your account was flagged by our AI moderation system for violating our username guidelines.
+    </p>
+
+    <div class="ban-user">
+      <div class="ban-user-row"><span>Username</span><b id="banUsername">—</b></div>
+      <div class="ban-user-row"><span>User ID</span><b id="banUserId">—</b></div>
+      <div class="ban-user-row"><span>Date</span><b id="banDate">—</b></div>
+    </div>
+
+    <div class="ban-reason">
+      <div class="ban-reason-label">Reason</div>
+      <div id="banReason">—</div>
+    </div>
+
+    <div class="ban-appeal">
+      <h2>Appeal — Change your username</h2>
+      <p>You can choose a new username that follows the <a href="/rules">rules</a>. Your account will be restored immediately.</p>
+
+      <div class="field">
+        <label>New Username</label>
+        <input type="text" id="newUsername" maxlength="32" placeholder="e.g. NightWolf99" />
+      </div>
+      <div class="captcha" id="banCaptcha"></div>
+      <div class="error-msg" id="banErr"></div>
+      <button class="btn" id="submitBtn">Change Username</button>
+    </div>
+
+    <div class="ban-footer">
+      With respect,<br/>
+      <b>TuCoria Team</b>
+    </div>
+
+    <button class="ban-logout" id="logoutBtn">Logout</button>
+  </div>
+</div>
+
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<script src="/js/ban.js"></script>
+</body>
+</html>

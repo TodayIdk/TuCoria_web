@@ -1,0 +1,102 @@
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 32px;
+  border-bottom: 1px solid var(--border);
+}
+.logout-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: 14px;
+  transition: background .15s ease;
+}
+.logout-btn:hover { background: #f4f4f4; }
+
+.rules-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 40px 24px 80px;
+}
+
+.rules-card {
+  max-width: 720px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px 44px;
+}
+
+.rules-tag {
+  display: inline-block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: 100px;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.rules-card h1 {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin-bottom: 10px;
+}
+
+.rules-lead {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.rules-card section {
+  margin-bottom: 28px;
+}
+.rules-card h2 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 10px;
+}
+.rules-card p {
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 8px;
+  line-height: 1.55;
+}
+.rules-card ul, .rules-card ol {
+  padding-left: 20px;
+  margin: 6px 0;
+}
+.rules-card li {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #222;
+}
+.rules-card code {
+  background: #f4f4f4;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  font-size: 12.5px;
+}
+.rules-card .good li code {
+  background: #000;
+  color: #fff;
+}
+
+.rules-footer {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
