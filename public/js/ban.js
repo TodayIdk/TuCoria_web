@@ -8,7 +8,11 @@
     err: document.getElementById('banErr'),
     submit: document.getElementById('submitBtn'),
     logout: document.getElementById('logoutBtn'),
-    captcha: document.getElementById('banCaptcha')
+    captcha: document.getElementById('banCaptcha'),
+    refuseBtn: document.getElementById('refuseBtn'),
+    modal: document.getElementById('refuseModal'),
+    cancelRefuse: document.getElementById('cancelRefuse'),
+    confirmRefuse: document.getElementById('confirmRefuse')
   };
 
   let siteKey = null;
@@ -78,10 +82,34 @@
         return;
       }
       window.location.href = '/home';
+    } catch { el.err.textContent = 'Network error'; }
+    finally { el.submit.disabled = false; }
+  });
+
+  el.refuseBtn.addEventListener('click', () => {
+    el.modal.style.display = 'flex';
+  });
+  el.cancelRefuse.addEventListener('click', () => {
+    el.modal.style.display = 'none';
+  });
+  el.confirmRefuse.addEventListener('click', async () => {
+    el.confirmRefuse.disabled = true;
+    try {
+      const r = await fetch('/api/auth/refuse-rename', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const d = await r.json();
+      if (r.ok) {
+        alert(`Account scheduled for deletion in 24 hours.\n${d.altsBanned} alt account(s) were banned.`);
+        window.location.href = '/auth';
+      } else {
+        alert(d.error || 'Error');
+        el.confirmRefuse.disabled = false;
+      }
     } catch {
-      el.err.textContent = 'Network error';
-    } finally {
-      el.submit.disabled = false;
+      alert('Network error');
+      el.confirmRefuse.disabled = false;
     }
   });
 

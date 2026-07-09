@@ -218,4 +218,47 @@ router.post('/change-username', authLimiter, async (req, res) => {
   }
 });
 
+router.post('/refuse-rename', async (req, res) => {
+  try {
+    const token = req.cookies.token;
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(payload.uid);
+    if (!user) return res.status(404).json({ error: 'Not found' });
+    if (!user.banned) return res.status(400).json({ error: 'Not banned' });
+
+    const { findAltAccounts } = require('../utils/moderator');
+    const alts = await findAltAccounts(user.userId);
+
+    for (const alt of alts) {
+      await User.updateOne(
+        { _id: alt._id },
+        {
+          $set: {
+            banned: true,
+            banReason: `[ALT-BAN] Linked to banned account #${user.userId} (${user.username})`,
+            bannedAt: new Date()
+          },
+          $inc: { tokenVersion: 1 }
+        }
+      );
+    }
+
+    user.pendingDeletion = true;
+    user.deletionScheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    await user.save();
+
+    res.clearCookie('token', { path: '/' });
+    res.json({
+      ok: true,
+      altsBanned: alts.length,
+      message: 'Account scheduled for deletion. All linked accounts have been banned.'
+    });
+  } catch (err) {
+    console.error('[REFUSE-RENAME]', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;

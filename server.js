@@ -7,9 +7,11 @@ const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const connectDB = require('./config/db');
+const User = require('./models/User');
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
+const { startModerator } = require('./utils/moderator');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -36,39 +38,60 @@ app.use(helmet({
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 
-function hasValidCookie(req) {
+async function getUserFromCookie(req) {
   try {
-    if (!req.cookies.token) return false;
-    jwt.verify(req.cookies.token, process.env.JWT_SECRET);
-    return true;
-  } catch { return false; }
+    if (!req.cookies.token) return null;
+    const payload = jwt.verify(req.cookies.token, process.env.JWT_SECRET);
+    const user = await User.findById(payload.uid).lean();
+    if (!user || user.tokenVersion !== payload.tv) return null;
+    return user;
+  } catch { return null; }
 }
 
-app.get('/', (req, res) => {
-  if (hasValidCookie(req)) return res.redirect('/home');
-  res.redirect('/auth');
+async function pageGuard(req, res, next) {
+  const user = await getUserFromCookie(req);
+  req._pageUser = user;
+  next();
+}
+
+app.get('/', pageGuard, (req, res) => {
+  const u = req._pageUser;
+  if (!u) return res.redirect('/auth');
+  if (u.banned) return res.redirect('/ban');
+  return res.redirect('/home');
 });
 
-app.get('/auth', (req, res) => {
-  if (hasValidCookie(req)) return res.redirect('/home');
+app.get('/auth', pageGuard, (req, res) => {
+  const u = req._pageUser;
+  if (u && u.banned) return res.redirect('/ban');
+  if (u) return res.redirect('/home');
   res.sendFile(path.join(__dirname, 'public/pages/auth.html'));
 });
 
-app.get('/home', (req, res) => {
-  if (!hasValidCookie(req)) return res.redirect('/auth');
+app.get('/home', pageGuard, (req, res) => {
+  const u = req._pageUser;
+  if (!u) return res.redirect('/auth');
+  if (u.banned) return res.redirect('/ban');
   res.sendFile(path.join(__dirname, 'public/pages/home.html'));
 });
 
-app.get('/ban', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/pages/ban.html'));
+app.get('/profile/:id(\\d+)', pageGuard, (req, res) => {
+  const u = req._pageUser;
+  if (u && u.banned) return res.redirect('/ban');
+  res.sendFile(path.join(__dirname, 'public/pages/profile.html'));
 });
 
-app.get('/rules', (req, res) => {
+app.get('/rules', pageGuard, (req, res) => {
+  const u = req._pageUser;
+  if (u && u.banned) return res.redirect('/ban');
   res.sendFile(path.join(__dirname, 'public/pages/rules.html'));
 });
 
-app.get('/profile/:id(\\d+)', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/pages/profile.html'));
+app.get('/ban', async (req, res) => {
+  const u = await getUserFromCookie(req);
+  if (!u) return res.redirect('/auth');
+  if (!u.banned) return res.redirect('/home');
+  res.sendFile(path.join(__dirname, 'public/pages/ban.html'));
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -85,15 +108,30 @@ async function fixOldIndexes() {
         console.log('[DB] Dropped old email_1 index');
       }
     }
-    const User = require('./models/User');
     await User.syncIndexes();
   } catch (err) {
     console.error('[DB] fixOldIndexes:', err.message);
   }
 }
 
+async function cleanupPendingDeletions() {
+  try {
+    const now = new Date();
+    const res = await User.deleteMany({
+      pendingDeletion: true,
+      deletionScheduledAt: { $lte: now }
+    });
+    if (res.deletedCount) console.log(`[MOD] Deleted ${res.deletedCount} pending accounts`);
+  } catch (e) { console.error('[MOD] cleanup:', e.message); }
+}
+
 connectDB().then(async () => {
   await fixOldIndexes();
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => console.log(`[Server] http://localhost:${PORT}`));
+
+  if (process.env.MODERATOR_ENABLED !== 'false') {
+    startModerator();
+  }
+  setInterval(cleanupPendingDeletions, 10 * 60 * 1000);
 });

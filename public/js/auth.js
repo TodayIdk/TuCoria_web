@@ -91,6 +91,11 @@
     const { username, password } = readForm(form);
     if (!username || !password) return errs[key].textContent = 'All fields required';
   
+    if (key === 'register') {
+      const agree = document.getElementById('rulesAgree');
+      if (!agree || !agree.checked) return errs[key].textContent = 'You must accept the Rules';
+    }
+  
     const turnstileToken = getToken(key);
     if (siteKey && !turnstileToken) return errs[key].textContent = 'Please complete the captcha';
   
