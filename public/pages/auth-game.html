@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TuCoria</title>
+<link rel="icon" href="/assets/logosite.png" />
+<link rel="stylesheet" href="/css/common.css" />
+<link rel="stylesheet" href="/css/auth.css" />
+<style>
+  .game-auth-card {
+    width: 100%;
+    max-width: 400px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px 28px;
+    background: #fff;
+    text-align: center;
+  }
+  .game-auth-card .logo { justify-content: center; margin-bottom: 20px; }
+  .game-auth-card h1 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .game-auth-card .desc { color: var(--muted); font-size: 14px; margin-bottom: 24px; line-height: 1.5; }
+  .game-auth-card .user-info {
+    background: #f4f4f4;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 20px;
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .game-auth-card .btn-group { display: flex; gap: 12px; }
+  .game-auth-card .btn-group .btn { flex: 1; }
+  .btn.cancel {
+    background: #fff;
+    color: #000;
+    border: 1px solid var(--border);
+  }
+  .btn.cancel:hover { background: #f4f4f4; }
+  .status-msg {
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .status-msg.success { color: #fff; font-weight: 600; }
+  .status-msg.error { color: #d92d20; }
+</style>
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="game-auth-card" id="authCard">
+    <div class="logo">
+      <img src="/assets/logo.png" alt="TuCoria" />
+      <span>TuCoria</span>
+    </div>
+
+    <div id="loadingState">
+      <h1>Loading...</h1>
+      <p class="desc">Checking your session</p>
+    </div>
+
+    <div id="loginRequired" style="display:none">
+      <h1>Sign in required</h1>
+      <p class="desc">You need to be signed in to authorize the game client.</p>
+      <a href="/auth" class="btn submit">Sign In</a>
+    </div>
+
+    <div id="authorizeState" style="display:none">
+      <h1>Authorize TuCoria Client</h1>
+      <p class="desc">The game client is requesting access to your account.</p>
+      <div class="user-info" id="userDisplay">Loading...</div>
+      <div class="btn-group">
+        <button class="btn cancel" onclick="denyAuth()">Deny</button>
+        <button class="btn submit" id="authorizeBtn" onclick="approveAuth()">Authorize</button>
+      </div>
+      <div class="status-msg" id="statusMsg"></div>
+    </div>
+
+    <div id="doneState" style="display:none">
+      <h1>✅ Authorized!</h1>
+      <p class="desc">You can close this tab and return to the game.</p>
+    </div>
+
+    <div id="errorState" style="display:none">
+      <h1>❌ Error</h1>
+      <p class="desc" id="errorText">Something went wrong.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const gameToken = params.get('token');
+
+async function init() {
+  if (!gameToken || gameToken.length < 16) {
+    showError('Invalid or missing token.');
+    return;
+  }
+
+  // Check if user is logged in
+  try {
+    const res = await fetch('/api/user/me', { credentials: 'include' });
+    if (!res.ok) {
+      showState('loginRequired');
+      return;
+    }
+    const user = await res.json();
+    document.getElementById('userDisplay').textContent = `@${user.username} (ID: ${user.userId})`;
+    showState('authorizeState');
+  } catch {
+    showState('loginRequired');
+  }
+}
+
+async function approveAuth() {
+  const btn = document.getElementById('authorizeBtn');
+  const msg = document.getElementById('statusMsg');
+  btn.disabled = true;
+  msg.textContent = 'Authorizing...';
+  msg.className = 'status-msg';
+
+  try {
+    const res = await fetch('/api/auth/game-authorize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ token: gameToken })
+    });
+    const data = await res.json();
+
+    if (res.ok && data.ok) {
+      showState('doneState');
+    } else {
+      msg.textContent = data.error || 'Authorization failed';
+      msg.className = 'status-msg error';
+      btn.disabled = false;
+    }
+  } catch {
+    msg.textContent = 'Network error';
+    msg.className = 'status-msg error';
+    btn.disabled = false;
+  }
+}
+
+function denyAuth() {
+  window.close();
+  // If can't close, redirect
+  setTimeout(() => { window.location.href = '/home'; }, 500);
+}
+
+function showState(id) {
+  ['loadingState', 'loginRequired', 'authorizeState', 'doneState', 'errorState']
+    .forEach(s => document.getElementById(s).style.display = 'none');
+  document.getElementById(id).style.display = 'block';
+}
+
+function showError(text) {
+  document.getElementById('errorText').textContent = text;
+  showState('errorState');
+}
+
+init();
+</script>
+</body>
+</html>

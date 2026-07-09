@@ -6,6 +6,7 @@ const User = require('../models/User');
 const { getNextId } = require('../utils/counter');
 const { verifyTurnstile } = require('../utils/turnstile');
 const { checkUsername, aiCheckExisting } = require('../utils/nameCheck');
+const GameSession = require('../models/GameSession');
 
 const router = express.Router();
 
@@ -227,6 +228,90 @@ router.get('/rename-check/:username', async (req, res) => {
     }
     res.json({ renamed: false });
   } catch { res.json({ renamed: false }); }
+});
+
+
+// Game client creates a session token
+router.post('/game-session', async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token || typeof token !== 'string' || token.length < 16 || token.length > 128)
+      return res.status(400).json({ error: 'Invalid token' });
+
+    // Delete old if exists
+    await GameSession.deleteMany({ token });
+
+    await GameSession.create({ token, status: 'pending' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[GAME-SESSION]', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Game client polls this to check if authorized
+router.get('/game-check', async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) return res.status(400).json({ error: 'No token' });
+
+    const session = await GameSession.findOne({ token });
+    if (!session) return res.json({ status: 'expired' });
+
+    if (session.status === 'authorized') {
+      // Clean up
+      await GameSession.deleteOne({ token });
+      return res.json({
+        status: 'authorized',
+        userId: session.userId,
+        username: session.username
+      });
+    }
+
+    res.json({ status: 'pending' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// User authorizes game session (from browser, must be logged in)
+router.post('/game-authorize', authLimiter, async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: 'No token' });
+
+    // Get user from cookie
+    const cookieToken = req.cookies.token;
+    if (!cookieToken) return res.status(401).json({ error: 'Not logged in' });
+
+    let payload;
+    try {
+      payload = jwt.verify(cookieToken, process.env.JWT_SECRET);
+    } catch {
+      return res.status(401).json({ error: 'Invalid session' });
+    }
+
+    const user = await User.findById(payload.uid);
+    if (!user || user.tokenVersion !== payload.tv)
+      return res.status(401).json({ error: 'Invalid session' });
+
+    if (user.banned)
+      return res.status(403).json({ error: 'Account banned' });
+
+    const session = await GameSession.findOne({ token, status: 'pending' });
+    if (!session)
+      return res.status(404).json({ error: 'Session not found or expired' });
+
+    session.status = 'authorized';
+    session.userId = user.userId;
+    session.username = user.username;
+    await session.save();
+
+    res.json({ ok: true, username: user.username });
+  } catch (err) {
+    console.error('[GAME-AUTH]', err);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 module.exports = router;

@@ -103,6 +103,10 @@ app.get('/ban', async (req, res) => {
   res.sendFile(path.join(__dirname, 'public/pages/ban.html'));
 });
 
+app.get('/auth/game', pageGuard, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/pages/auth-game.html'));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
