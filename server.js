@@ -142,5 +142,4 @@ connectDB().then(async () => {
   if (process.env.MODERATOR_ENABLED !== 'false') {
     startModerator();
   }
-  setInterval(cleanupPendingDeletions, 10 * 60 * 1000);
 });
