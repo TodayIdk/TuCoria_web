@@ -90,25 +90,25 @@
     errs[key].textContent = '';
     const { username, password } = readForm(form);
     if (!username || !password) return errs[key].textContent = 'All fields required';
-  
+
     if (key === 'register') {
       const agree = document.getElementById('rulesAgree');
       if (!agree || !agree.checked) return errs[key].textContent = 'You must accept the Rules';
     }
-  
+
     const turnstileToken = getToken(key);
     if (siteKey && !turnstileToken) return errs[key].textContent = 'Please complete the captcha';
-  
+
     const btn = form.querySelector('button[type=submit]');
     btn.disabled = true;
     const r = await post(url, { username, password, turnstileToken });
     btn.disabled = false;
-  
+
     if (r.status === 403 && r.data.error === 'banned') {
       window.location.href = '/ban';
       return;
     }
-  
+
     if (!r.ok) {
       errs[key].textContent = r.data.error || 'Error';
       resetCaptcha(key);
@@ -116,7 +116,7 @@
     }
     window.location.href = '/home';
   }
-  
+
   forms.login.addEventListener('submit', e => { e.preventDefault(); submit('login', '/api/auth/login'); });
   forms.register.addEventListener('submit', e => { e.preventDefault(); submit('register', '/api/auth/register'); });
 

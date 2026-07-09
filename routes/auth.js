@@ -227,21 +227,24 @@ router.post('/refuse-rename', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'Not found' });
     if (!user.banned) return res.status(400).json({ error: 'Not banned' });
 
-    const { findAltAccounts } = require('../utils/moderator');
-    const alts = await findAltAccounts(user.userId);
+    const { detectAlts } = require('../utils/altDetector');
+    const { alts } = await detectAlts(user.toObject());
 
+    let bannedAlts = 0;
     for (const alt of alts) {
+      if (alt.banned) continue;
       await User.updateOne(
-        { _id: alt._id },
+        { userId: alt.userId },
         {
           $set: {
             banned: true,
-            banReason: `[ALT-BAN] Linked to banned account #${user.userId} (${user.username})`,
+            banReason: `[ALT-BAN] AI-detected alt of banned #${user.userId} (${user.username}). Confidence: ${(alt.aiConfidence || 0).toFixed(2)}. ${alt.aiReason || alt.reasons.join('; ')}`,
             bannedAt: new Date()
           },
           $inc: { tokenVersion: 1 }
         }
       );
+      bannedAlts++;
     }
 
     user.pendingDeletion = true;
@@ -252,8 +255,8 @@ router.post('/refuse-rename', async (req, res) => {
     res.clearCookie('token', { path: '/' });
     res.json({
       ok: true,
-      altsBanned: alts.length,
-      message: 'Account scheduled for deletion. All linked accounts have been banned.'
+      altsBanned: bannedAlts,
+      message: 'Account scheduled for deletion. All AI-detected alt accounts have been banned.'
     });
   } catch (err) {
     console.error('[REFUSE-RENAME]', err);

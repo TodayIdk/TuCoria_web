@@ -21,18 +21,19 @@
     </div>
 
     <div class="tabs">
-      <button class="tab active" data-tab="login">Login</button>
-      <button class="tab" data-tab="register">Register</button>
+      <button class="tab active" data-tab="login" type="button">Login</button>
+      <button class="tab" data-tab="register" type="button">Register</button>
     </div>
-    
+
     <div class="rules-notice">
       <div class="rules-notice-icon">📖</div>
       <div class="rules-notice-text">
         Before registering, please read our <a href="/rules" target="_blank">Username Rules</a>.
+        Our AI moderator scans all usernames 24/7 and will ban violators automatically.
       </div>
     </div>
-    
-    <form id="loginForm" class="active" autocomplete="off">
+
+    <form id="loginForm" class="auth-form active" autocomplete="off">
       <div class="field">
         <label>Username</label>
         <input type="text" name="username" required minlength="4" maxlength="32" />
@@ -45,8 +46,8 @@
       <div class="error-msg" id="loginErr"></div>
       <button type="submit" class="btn submit">Sign In</button>
     </form>
-    
-    <form id="registerForm" autocomplete="off">
+
+    <form id="registerForm" class="auth-form" autocomplete="off">
       <div class="field">
         <label>Username</label>
         <input type="text" name="username" required minlength="4" maxlength="32" />
@@ -60,34 +61,6 @@
         <input type="checkbox" id="rulesAgree" />
         <span>I have read and agree to the <a href="/rules" target="_blank">Username Rules</a></span>
       </label>
-      <div class="error-msg" id="regErr"></div>
-      <button type="submit" class="btn submit">Create Account</button>
-    </form>
-
-    <form id="loginForm" class="active" autocomplete="off">
-      <div class="field">
-        <label>Username</label>
-        <input type="text" name="username" required minlength="4" maxlength="32" />
-      </div>
-      <div class="field">
-        <label>Password</label>
-        <input type="password" name="password" required maxlength="100" />
-      </div>
-      <div class="captcha" id="loginCaptcha"></div>
-      <div class="error-msg" id="loginErr"></div>
-      <button type="submit" class="btn submit">Sign In</button>
-    </form>
-
-    <form id="registerForm" autocomplete="off">
-      <div class="field">
-        <label>Username</label>
-        <input type="text" name="username" required minlength="4" maxlength="32" />
-      </div>
-      <div class="field">
-        <label>Password</label>
-        <input type="password" name="password" required minlength="8" maxlength="100" />
-      </div>
-      <div class="captcha" id="registerCaptcha"></div>
       <div class="error-msg" id="regErr"></div>
       <button type="submit" class="btn submit">Create Account</button>
     </form>
