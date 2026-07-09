@@ -8,6 +8,13 @@
     login: document.getElementById('loginErr'),
     register: document.getElementById('regErr')
   };
+  const captchas = {
+    login: document.getElementById('loginCaptcha'),
+    register: document.getElementById('registerCaptcha')
+  };
+
+  let siteKey = null;
+  const widgetIds = { login: null, register: null };
 
   tabs.forEach(t => {
     t.addEventListener('click', () => {
@@ -18,6 +25,41 @@
       Object.values(errs).forEach(e => e.textContent = '');
     });
   });
+
+  async function loadConfig() {
+    try {
+      const r = await fetch('/api/auth/config');
+      const d = await r.json();
+      siteKey = d.turnstileSiteKey;
+      if (siteKey) waitForTurnstile();
+    } catch {}
+  }
+
+  function waitForTurnstile() {
+    if (window.turnstile) return renderCaptchas();
+    const t = setInterval(() => {
+      if (window.turnstile) { clearInterval(t); renderCaptchas(); }
+    }, 100);
+  }
+
+  function renderCaptchas() {
+    for (const key of ['login', 'register']) {
+      widgetIds[key] = window.turnstile.render(captchas[key], {
+        sitekey: siteKey,
+        theme: 'light',
+        size: 'flexible'
+      });
+    }
+  }
+
+  function getToken(key) {
+    if (!siteKey || widgetIds[key] === null) return '';
+    return window.turnstile.getResponse(widgetIds[key]) || '';
+  }
+
+  function resetCaptcha(key) {
+    if (siteKey && widgetIds[key] !== null) window.turnstile.reset(widgetIds[key]);
+  }
 
   async function post(url, data) {
     try {
@@ -39,37 +81,34 @@
     const p = form.querySelector('input[name=password]');
     return {
       username: (u?.value || '').trim(),
-      password: (p?.value || '').trim()
+      password: p?.value || ''
     };
   }
 
-  forms.login.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    errs.login.textContent = '';
-    const { username, password } = readForm(forms.login);
-    if (!username || !password) return errs.login.textContent = 'All fields required';
+  async function submit(key, url) {
+    const form = forms[key];
+    errs[key].textContent = '';
+    const { username, password } = readForm(form);
+    if (!username || !password) return errs[key].textContent = 'All fields required';
 
-    const btn = forms.login.querySelector('button[type=submit]');
+    const turnstileToken = getToken(key);
+    if (siteKey && !turnstileToken) return errs[key].textContent = 'Please complete the captcha';
+
+    const btn = form.querySelector('button[type=submit]');
     btn.disabled = true;
-    const r = await post('/api/auth/login', { username, password });
+    const r = await post(url, { username, password, turnstileToken });
     btn.disabled = false;
 
-    if (!r.ok) return errs.login.textContent = r.data.error || 'Error';
+    if (!r.ok) {
+      errs[key].textContent = r.data.error || 'Error';
+      resetCaptcha(key);
+      return;
+    }
     window.location.href = '/home';
-  });
+  }
 
-  forms.register.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    errs.register.textContent = '';
-    const { username, password } = readForm(forms.register);
-    if (!username || !password) return errs.register.textContent = 'All fields required';
+  forms.login.addEventListener('submit', e => { e.preventDefault(); submit('login', '/api/auth/login'); });
+  forms.register.addEventListener('submit', e => { e.preventDefault(); submit('register', '/api/auth/register'); });
 
-    const btn = forms.register.querySelector('button[type=submit]');
-    btn.disabled = true;
-    const r = await post('/api/auth/register', { username, password });
-    btn.disabled = false;
-
-    if (!r.ok) return errs.register.textContent = r.data.error || 'Error';
-    window.location.href = '/home';
-  });
+  loadConfig();
 })();

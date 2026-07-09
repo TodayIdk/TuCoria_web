@@ -28,12 +28,13 @@
     <form id="loginForm" class="active" autocomplete="off">
       <div class="field">
         <label>Username</label>
-        <input type="text" name="username" required minlength="3" maxlength="20" />
+        <input type="text" name="username" required minlength="4" maxlength="32" />
       </div>
       <div class="field">
         <label>Password</label>
         <input type="password" name="password" required maxlength="100" />
       </div>
+      <div class="captcha" id="loginCaptcha"></div>
       <div class="error-msg" id="loginErr"></div>
       <button type="submit" class="btn submit">Sign In</button>
     </form>
@@ -41,17 +42,20 @@
     <form id="registerForm" autocomplete="off">
       <div class="field">
         <label>Username</label>
-        <input type="text" name="username" required minlength="3" maxlength="20" />
+        <input type="text" name="username" required minlength="4" maxlength="32" />
       </div>
       <div class="field">
         <label>Password</label>
         <input type="password" name="password" required minlength="8" maxlength="100" />
       </div>
+      <div class="captcha" id="registerCaptcha"></div>
       <div class="error-msg" id="regErr"></div>
       <button type="submit" class="btn submit">Create Account</button>
     </form>
   </div>
 </div>
+
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script src="/js/auth.js"></script>
 </body>
 </html>

@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const { getNextId } = require('../utils/counter');
 
 const userSchema = new mongoose.Schema({
   userId: { type: Number, unique: true, index: true },
@@ -7,8 +6,8 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
-    minlength: 3,
-    maxlength: 20
+    minlength: 4,
+    maxlength: 32
   },
   usernameLower: {
     type: String,
@@ -26,13 +25,6 @@ const userSchema = new mongoose.Schema({
 
 userSchema.pre('validate', function(next) {
   if (this.username) this.usernameLower = this.username.toLowerCase();
-  next();
-});
-
-userSchema.pre('save', async function(next) {
-  if (this.isNew && !this.userId) {
-    this.userId = await getNextId('userId');
-  }
   next();
 });
 

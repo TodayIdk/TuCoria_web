@@ -78,3 +78,11 @@ form { display: none; }
 form.active { display: block; }
 
 .submit { margin-top: 8px; }
+
+.captcha {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0 4px;
+  min-height: 0;
+}
+.captcha:empty { display: none; }

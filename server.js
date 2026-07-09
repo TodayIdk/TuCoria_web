@@ -25,8 +25,9 @@ app.use(helmet({
       styleSrc: ["'self'", "https://fonts.googleapis.com", "'unsafe-inline'"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:"],
-      scriptSrc: ["'self'"],
-      connectSrc: ["'self'"]
+      scriptSrc: ["'self'", "https://challenges.cloudflare.com"],
+      frameSrc: ["'self'", "https://challenges.cloudflare.com"],
+      connectSrc: ["'self'", "https://challenges.cloudflare.com"]
     }
   },
   crossOriginResourcePolicy: { policy: "same-origin" }
