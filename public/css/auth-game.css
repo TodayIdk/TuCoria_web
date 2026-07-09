@@ -1,0 +1,35 @@
+.game-auth-card {
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 28px;
+  background: #fff;
+  text-align: center;
+}
+.game-auth-card .logo { justify-content: center; margin-bottom: 20px; }
+.game-auth-card h1 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.game-auth-card .desc { color: var(--muted); font-size: 14px; margin-bottom: 24px; line-height: 1.5; }
+.game-auth-card .user-info {
+  background: #f4f4f4;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  font-size: 15px;
+}
+.game-auth-card .btn-group { display: flex; gap: 12px; }
+.game-auth-card .btn-group .btn { flex: 1; }
+.btn.cancel {
+  background: #fff;
+  color: #000;
+  border: 1px solid var(--border);
+}
+.btn.cancel:hover { background: #f4f4f4; }
+.status-msg {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.status-msg.success { color: #10b981; font-weight: 600; }
+.status-msg.error { color: #d92d20; }
