@@ -27,7 +27,7 @@ app.use(helmet({
       imgSrc: ["'self'", "data:"],
       scriptSrc: ["'self'", "https://challenges.cloudflare.com"],
       frameSrc: ["'self'", "https://challenges.cloudflare.com"],
-      connectSrc: ["'self'", "https://challenges.cloudflare.com"]
+      connectSrc: ["'self'", "https://challenges.cloudflare.com", "https://text.pollinations.ai"]
     }
   },
   crossOriginResourcePolicy: { policy: "same-origin" }

@@ -5,7 +5,7 @@ const KEEP = ['today_idk', 'kamkin'];
 
 async function run() {
   try {
-    const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/tucoria';
+    const uri = process.env.MONGO_URI || 'mongodb+srv://Today_Idk:TpdauT434odayTodayToday23@cluster0.rlgkop5.mongodb.net/TuCoria?retryWrites=true&w=majority&appName=Cluster0';
     await mongoose.connect(uri);
     console.log('[DB] Connected');
 
