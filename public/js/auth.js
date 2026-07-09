@@ -128,7 +128,14 @@
       resetCaptcha(key);
       return;
     }
-    window.location.href = '/home';
+    const params = new URLSearchParams(window.location.search);
+    const gameToken = params.get('gameToken');
+    
+    if (gameToken) {
+      window.location.href = '/auth/game?token=' + encodeURIComponent(gameToken);
+    } else {
+      window.location.href = '/home';
+    }
   }
 
   forms.login.addEventListener('submit', e => { e.preventDefault(); submit('login', '/api/auth/login'); });

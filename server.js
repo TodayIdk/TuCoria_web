@@ -12,6 +12,7 @@ const User = require('./models/User');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const { startModerator } = require('./utils/moderator');
+const GameSession = require('./models/GameSession');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -103,8 +104,36 @@ app.get('/ban', async (req, res) => {
   res.sendFile(path.join(__dirname, 'public/pages/ban.html'));
 });
 
-app.get('/auth/game', pageGuard, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/pages/auth-game.html'));
+app.get('/auth/game', async (req, res) => {
+  try {
+    const token = String(req.query.token || '').trim();
+    if (!token) return res.redirect('/auth');
+
+    const u = await getUserFromCookie(req);
+
+    // если не залогинен — кидаем на auth, но сохраняем token
+    if (!u) {
+      return res.redirect('/auth?gameToken=' + encodeURIComponent(token));
+    }
+
+    if (u.banned) return res.redirect('/ban');
+
+    const session = await GameSession.findOne({ token, status: 'pending' });
+
+    if (!session) {
+      return res.sendFile(path.join(__dirname, 'public/pages/auth-game-expired.html'));
+    }
+
+    session.status = 'authorized';
+    session.userId = u.userId;
+    session.username = u.username;
+    await session.save();
+
+    return res.sendFile(path.join(__dirname, 'public/pages/auth-game-success.html'));
+  } catch (err) {
+    console.error('[AUTH GAME PAGE]', err);
+    return res.status(500).send('Server error');
+  }
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
