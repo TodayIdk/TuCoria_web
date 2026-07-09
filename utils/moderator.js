@@ -19,7 +19,7 @@ async function scanAllUsers() {
     for (let i = 0; i < users.length; i++) {
       const u = users[i];
       try {
-        const result = await checkUsername(u.username);
+        const result = await checkUsername(u.username, u.userId);
         if (!result.ok) {
           await User.updateOne(
             { _id: u._id },

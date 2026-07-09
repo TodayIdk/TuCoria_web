@@ -172,6 +172,9 @@ const RESERVED = [
   'создатель', 'владелец', 'офиц', 'саппорт', 'поддержка',
   'систем', 'сервер', 'бот', 'аноним', 'тукория'
 ];
+const WHITELIST_USER_IDS = [1, 2];
+const WHITELIST_NAMES = ['today_idk', 'kamkin'];
+
 
 function normalize(s) {
   return s
@@ -296,7 +299,10 @@ BE PARANOID. If ANY doubt, reject.`;
   return { ok: true };
 }
 
-async function checkUsername(username) {
+async function checkUsername(username, userId = null) {
+  if (userId && WHITELIST_USER_IDS.includes(userId)) return { ok: true };
+  if (WHITELIST_NAMES.includes(username.toLowerCase())) return { ok: true };
+
   const local = localCheck(username);
   if (!local.ok) return local;
   const ai = await aiCheck(username);
